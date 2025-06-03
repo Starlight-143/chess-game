@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Rollers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base styles for the body */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1a1a2e; /* Dark space blue */
+            color: #e0e0e0; /* Light grey for text */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            overflow-x: hidden; /* Prevent horizontal scroll on smaller screens */
+        }
+        /* Specific font for titles */
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Main game container styling */
+        .game-container {
+            background-color: #1f1f3a; /* Slightly lighter than body */
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 0 25px rgba(78, 204, 163, 0.3); /* Neon green glow */
+            width: 100%;
+            max-width: 900px;
+            position: relative; /* Needed for positioning the rules icon */
+        }
+        /* Player section card styling */
+        .player-area {
+            background-color: #2a2a4a; /* Darker card background */
+            border: 1px solid #4ecca3; /* Neon green border */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            transition: all 0.3s ease; /* Smooth transition for active state */
+        }
+        /* Active player highlight */
+        .player-area.active {
+            box-shadow: 0 0 15px #4ecca3;
+            transform: scale(1.02);
+        }
+        /* Dice container for layout */
+        .dice-container {
+            display: flex;
+            gap: 0.5rem; /* Reduced gap for smaller screens */
+            justify-content: center;
+            align-items: center;
+            height: 60px; /* Fixed height for consistent layout */
+            margin-bottom: 1rem;
+        }
+        /* Individual dice styling */
+        .dice {
+            width: 50px;
+            height: 50px;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #e0e0e0; /* Light background for dice face */
+            border: 2px solid #4ecca3; /* Neon green border */
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+            cursor: pointer; /* Indicate clickability for Flux ability */
+            transition: transform 0.1s ease;
+        }
+        .dice:hover:not(.disabled) {
+            transform: scale(1.05);
+        }
+        .dice.rolling {
+            animation: diceRollAnimation 0.3s infinite alternate; /* Simple rolling animation */
+        }
+        @keyframes diceRollAnimation {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(15deg); }
+        }
+        .dice svg {
+            width: 30px;
+            height: 30px;
+            fill: #1a1a2e; /* Dark dots on dice */
+        }
+        /* Primary button styling */
+        .btn-primary {
+            background-color: #4ecca3; /* Neon green */
+            color: #1a1a2e; /* Dark blue text */
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #68e0b9; /* Lighter green on hover */
+            box-shadow: 0 0 10px #4ecca3;
+        }
+        .btn-primary:disabled {
+            background-color: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        /* Ability button styling */
+        .btn-ability {
+            background-color: #3b3b7a; /* Indigo */
+            color: #e0e0e0;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #4ecca3;
+            transition: all 0.3s ease;
+            font-size: 0.875rem; /* Smaller font for ability buttons */
+            cursor: pointer;
+        }
+        .btn-ability:hover:not(:disabled) {
+            background-color: #4a4ab8;
+            box-shadow: 0 0 8px #4ecca3;
+        }
+        .btn-ability:disabled {
+            background-color: #444;
+            color: #777;
+            border-color: #555;
+            cursor: not-allowed;
+        }
+        /* Message box styling */
+        .message-box {
+            min-height: 60px; /* Ensure space for messages */
+            background-color: #2a2a4a;
+            border: 1px solid #4ecca3;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 1.125rem;
+            color: #4ecca3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Rules Icon Styling - Positioned at bottom right */
+        #rulesIcon {
+            position: absolute;
+            bottom: 1rem; /* Position at bottom */
+            right: 1rem; /* Position at right */
+            color: #e0e0e0; /* Light grey */
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.2s ease;
+            z-index: 10; /* Ensure it's above other elements */
+        }
+        #rulesIcon:hover {
+            color: #4ecca3; /* Neon green on hover */
+            transform: scale(1.1);
+        }
+
+        /* Rules Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #1f1f3a; /* Modal background matches game container */
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh; /* Limit height to 90% of viewport height */
+            overflow-y: auto; /* Enable vertical scrolling if content overflows */
+            box-shadow: 0 0 30px rgba(78, 204, 163, 0.4); /* Neon green glow */
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+            border: 1px solid #4ecca3; /* Neon border */
+            color: #e0e0e0; /* Light text */
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+        .modal-content h3 {
+            color: #4ecca3; /* Neon green title */
+            font-family: 'Orbitron', sans-serif;
+        }
+        .modal-content ol li, .modal-content ul li {
+            margin-bottom: 0.5rem;
+        }
+        .modal-content span {
+            color: #68e0b9; /* Lighter green for emphasized text */
+            font-weight: bold;
+        }
+        .close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #e0e0e0;
+            transition: color 0.2s ease;
+        }
+        .close-button:hover {
+            color: #ef4444; /* Red on hover */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 1rem;
+            }
+            .player-area {
+                padding: 0.75rem;
+            }
+            h1 {
+                font-size: 2rem; /* Orbitron font size */
+            }
+            h2 {
+                font-size: 1.25rem;
+            }
+            .dice-container {
+                height: 50px;
+            }
+            .dice {
+                width: 40px;
+                height: 40px;
+            }
+            .dice svg {
+                width: 24px;
+                height: 24px;
+            }
+            .btn-primary {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+            .btn-ability {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.75rem;
+            }
+            .message-box {
+                font-size: 1rem;
+                min-height: 40px;
+            }
+            .grid-cols-2 { /* For player areas */
+                grid-template-columns: repeat(1, minmax(0, 1fr)); /* Stack on small screens */
+            }
+            .modal-content {
+                padding: 1.5rem;
+            }
+            .modal-content h3 {
+                font-size: 1.75rem;
+            }
+            .modal-content ol li, .modal-content ul li {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <button id="rulesIcon" aria-label="Show Game Rules" role="button" tabindex="0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9.247a.75.75 0 01.953-1.02l2.673 1.336a.75.75 0 01.953 1.02l-2.673 1.336a.75.75 0 01-1.02-.953l1.336-2.673zM12 21a9 9 0 110-18 9 9 0 010 18zM12 7.5V9" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 16.121A3 3 0 0112 15c.828 0 1.5.672 1.5 1.5s-.672 1.5-1.5 1.5c-.828 0-1.5-.672-1.5-1.5zM12 7.5V9" />
+            </svg>
+        </button>
+
+        <h1 class="text-4xl md:text-5xl font-orbitron text-center mb-6 text-[#4ecca3]">Quantum Rollers</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+            <div id="player1Area" class="player-area active">
+                <h2 class="text-2xl md:text-3xl font-orbitron text-center mb-3">Player 1</h2>
+                <div class="text-center mb-2">
+                    <span class="text-lg">Victory Points: </span><span id="player1VP" class="text-xl font-bold text-[#4ecca3]">0</span>
+                </div>
+                <div class="text-center mb-3">
+                    <span class="text-lg">Quantum Energy (QE): </span><span id="player1QE" class="text-xl font-bold text-[#4ecca3]">10</span>
+                </div>
+                <div class="dice-container" id="player1Dice">
+                    <div class="dice"></div>
+                    <div class="dice"></div>
+                </div>
+                <p class="text-center text-lg mb-3">Roll: <span id="player1RollTotal" class="font-bold">0</span></p>
+                <div class="flex flex-col sm:flex-row justify-around items-center gap-2">
+                    <button id="p1AbilityFlux" class="btn-ability w-full sm:w-auto" data-player="1" data-ability="flux">Flux (5 QE)</button>
+                    <button id="p1AbilityAmplify" class="btn-ability w-full sm:w-auto" data-player="1" data-ability="amplify">Amplify (8 QE)</button>
+                    <button id="p1AbilityShield" class="btn-ability w-full sm:w-auto" data-player="1" data-ability="shield">Shield (10 QE)</button>
+                </div>
+            </div>
+
+            <div id="player2Area" class="player-area">
+                <h2 class="text-2xl md:text-3xl font-orbitron text-center mb-3">Player 2</h2>
+                <div class="text-center mb-2">
+                    <span class="text-lg">Victory Points: </span><span id="player2VP" class="text-xl font-bold text-[#4ecca3]">0</span>
+                </div>
+                <div class="text-center mb-3">
+                    <span class="text-lg">Quantum Energy (QE): </span><span id="player2QE" class="text-xl font-bold text-[#4ecca3]">10</span>
+                </div>
+                <div class="dice-container" id="player2Dice">
+                    <div class="dice"></div>
+                    <div class="dice"></div>
+                </div>
+                <p class="text-center text-lg mb-3">Roll: <span id="player2RollTotal" class="font-bold">0</span></p>
+                <div class="flex flex-col sm:flex-row justify-around items-center gap-2">
+                    <button id="p2AbilityFlux" class="btn-ability w-full sm:w-auto" data-player="2" data-ability="flux">Flux (5 QE)</button>
+                    <button id="p2AbilityAmplify" class="btn-ability w-full sm:w-auto" data-player="2" data-ability="amplify">Amplify (8 QE)</button>
+                    <button id="p2AbilityShield" class="btn-ability w-full sm:w-auto" data-player="2" data-ability="shield">Shield (10 QE)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-6">
+            <button id="rollButton" class="btn-primary text-lg">Roll Dice</button>
+            <button id="endTurnButton" class="btn-primary text-lg ml-2" style="display: none;">End Turn & Score</button>
+        </div>
+
+        <div id="messageBox" class="message-box">
+            Player 1's turn. Click "Roll Dice".
+        </div>
+        <div class="text-center mt-4">
+            <button id="resetButton" class="btn-primary bg-red-500 hover:bg-red-700 text-white text-sm">Reset Game</button>
+        </div>
+    </div>
+
+    <div id="rulesModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-button" id="closeRulesBtn" aria-label="Close Rules">
+                &times;
+            </button>
+            <h3 class="text-3xl font-bold text-center mb-6">Quantum Rollers: Game Rules</h3>
+            <ol class="list-decimal list-inside text-lg space-y-3">
+                <li><span class="font-semibold text-[#68e0b9]">Objective:</span> First to <span class="font-semibold text-[#4ecca3]">50 Victory Points (VP)</span> wins.</li>
+                <li><span class="font-semibold text-[#68e0b9]">Resources:</span>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li><span class="font-semibold">VP:</span> Earned by winning rounds.</li>
+                        <li><span class="font-semibold">QE:</span> Starts at 10. Gained equal to your dice roll total each turn. Used for abilities.</li>
+                    </ul>
+                </li>
+                <li><span class="font-semibold text-[#68e0b9]">Gameplay Flow:</span>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li>Players take turns. A round is Player 1's turn, then Player 2's turn, followed by scoring.</li>
+                        <li><span class="font-semibold">Roll Phase:</span> Roll two dice. Gain QE equal to your roll total.</li>
+                        <li><span class="font-semibold">Abilities Phase:</span> Use Quantum Abilities (if you have QE) or "End Turn".</li>
+                        <li><span class="font-semibold">End Turn:</span> Ends your turn. When both players have ended, the round scores.</li>
+                    </ul>
+                </li>
+                <li><span class="font-semibold text-[#68e0b9]">Quantum Abilities (Once per turn):</span>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li><span class="font-semibold">Flux (5 QE):</span> Re-roll one of your dice (click the die).</li>
+                        <li><span class="font-semibold">Amplify (8 QE):</span> Add +2 to your current roll total.</li>
+                        <li><span class="font-semibold">Shield (10 QE):</span> Halve opponent's VP gain if they win the *next* scoring phase.</li>
+                    </ul>
+                </li>
+                <li><span class="font-semibold text-[#68e0b9]">Scoring Phase:</span>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li>Higher roll wins. Winner gains VP: (Winner's Roll - Loser's Roll) + 2.</li>
+                        <li>If loser had Shield, winner's VP gain is halved (rounded down).</li>
+                        <li><span class="font-semibold">Draw:</span> Both players gain 2 QE; no VP awarded.</li>
+                        <li>After scoring, dice/rolls reset, shields deactivate. Player 1 starts next round.</li>
+                    </ul>
+                </li>
+                <li><span class="font-semibold text-[#68e0b9]">Winning:</span> First to 50 VP wins!</li>
+                <li><span class="font-semibold text-[#68e0b9]">Reset:</span> Click "Reset Game" to start over.</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for Firebase configuration and app ID (provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // FIX: Corrected the reference to __initial_auth_token in its own initialization
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Game Configuration ---
+        const WINNING_VP = 50;
+        const INITIAL_QE = 10;
+        const ABILITIES = {
+            flux: { cost: 5, usesPerTurn: 1 }, // Allow one re-roll per turn for flux
+            amplify: { cost: 8, usesPerTurn: 1 },
+            shield: { cost: 10, usesPerTurn: 1 }
+        };
+
+        // --- Game State ---
+        let player1 = {
+            vp: 0,
+            qe: INITIAL_QE,
+            dice: [0, 0],
+            rollTotal: 0,
+            abilitiesUsedThisTurn: { flux: 0, amplify: 0, shield: 0 },
+            shieldActive: false,
+            name: "Player 1"
+        };
+        let player2 = {
+            vp: 0,
+            qe: INITIAL_QE,
+            dice: [0, 0],
+            rollTotal: 0,
+            abilitiesUsedThisTurn: { flux: 0, amplify: 0, shield: 0 },
+            shieldActive: false,
+            name: "Player 2"
+        };
+        let currentPlayer = 1;
+        let gamePhase = "roll"; // "roll", "abilities", "flux_select", "scoring"
+        let fluxDiceIndex = -1; // To track which die to re-roll for Flux
+
+        // --- DOM Elements ---
+        const p1VPEl = document.getElementById('player1VP');
+        const p1QEEl = document.getElementById('player1QE');
+        const p1DiceEls = [document.getElementById('player1Dice').children[0], document.getElementById('player1Dice').children[1]];
+        const p1RollTotalEl = document.getElementById('player1RollTotal');
+
+        const p2VPEl = document.getElementById('player2VP');
+        const p2QEEl = document.getElementById('player2QE');
+        const p2DiceEls = [document.getElementById('player2Dice').children[0], document.getElementById('player2Dice').children[1]];
+        const p2RollTotalEl = document.getElementById('player2RollTotal');
+
+        const rollButton = document.getElementById('rollButton');
+        const endTurnButton = document.getElementById('endTurnButton');
+        const messageBox = document.getElementById('messageBox');
+        const resetButton = document.getElementById('resetButton');
+
+        const p1AbilityButtons = {
+            flux: document.getElementById('p1AbilityFlux'),
+            amplify: document.getElementById('p1AbilityAmplify'),
+            shield: document.getElementById('p1AbilityShield')
+        };
+        const p2AbilityButtons = {
+            flux: document.getElementById('p2AbilityFlux'),
+            amplify: document.getElementById('p2AbilityAmplify'),
+            shield: document.getElementById('p2AbilityShield')
+        };
+
+        const rulesIcon = document.getElementById('rulesIcon');
+        const rulesModal = document.getElementById('rulesModal');
+        const closeRulesBtn = document.getElementById('closeRulesBtn');
+
+
+        // --- Dice SVG ---
+        // SVG paths for dice faces 1-6
+        const diceSVGData = [
+            '', // 0 index (not used)
+            '<circle cx="25" cy="25" r="5"/>', // 1
+            '<circle cx="15" cy="15" r="5"/><circle cx="35" cy="35" r="5"/>', // 2
+            '<circle cx="15" cy="15" r="5"/><circle cx="25" cy="25" r="5"/><circle cx="35" cy="35" r="5"/>', // 3
+            '<circle cx="15" cy="15" r="5"/><circle cx="35" cy="15" r="5"/><circle cx="15" cy="35" r="5"/><circle cx="35" cy="35" r="5"/>', // 4
+            '<circle cx="15" cy="15" r="5"/><circle cx="35" cy="15" r="5"/><circle cx="25" cy="25" r="5"/><circle cx="15" cy="35" r="5"/><circle cx="35" cy="35" r="5"/>', // 5
+            '<circle cx="15" cy="15" r="5"/><circle cx="35" cy="15" r="5"/><circle cx="15" cy="25" r="5"/><circle cx="35" cy="25" r="5"/><circle cx="15" cy="35" r="5"/><circle cx="35" cy="35" r="5"/>' // 6
+        ];
+
+        function createDiceSVG(value) {
+            return `<svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">${diceSVGData[value]}</svg>`;
+        }
+
+        // --- Game Logic Functions ---
+        function rollDie() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        function updateUI() {
+            p1VPEl.textContent = player1.vp;
+            p1QEEl.textContent = player1.qe;
+            p1RollTotalEl.textContent = player1.rollTotal;
+            p1DiceEls.forEach((el, i) => el.innerHTML = player1.dice[i] ? createDiceSVG(player1.dice[i]) : '');
+
+            p2VPEl.textContent = player2.vp;
+            p2QEEl.textContent = player2.qe;
+            p2RollTotalEl.textContent = player2.rollTotal;
+            p2DiceEls.forEach((el, i) => el.innerHTML = player2.dice[i] ? createDiceSVG(player2.dice[i]) : '');
+
+            // Update active player visuals
+            document.getElementById('player1Area').classList.toggle('active', currentPlayer === 1 && gamePhase !== "scoring");
+            document.getElementById('player2Area').classList.toggle('active', currentPlayer === 2 && gamePhase !== "scoring");
+            
+            // Update button states
+            rollButton.style.display = (gamePhase === "roll" || gamePhase === "scoring") ? "inline-block" : "none";
+            endTurnButton.style.display = (gamePhase === "abilities" || (gamePhase === "flux_select" && fluxDiceIndex !== -1) ) ? "inline-block" : "none";
+            
+            rollButton.disabled = gamePhase !== "roll" && gamePhase !== "scoring"; // Only enable if in roll or scoring phase
+            if (gamePhase === "scoring") {
+                rollButton.textContent = `Start P${currentPlayer}'s Turn`;
+                rollButton.disabled = false; // Always enable to start next turn
+            } else if (gamePhase === "flux_select") {
+                rollButton.disabled = true; // Disable main roll button during flux selection
+            } else {
+                rollButton.textContent = "Roll Dice";
+            }
+
+            updateAbilityButtons(1, player1);
+            updateAbilityButtons(2, player2);
+        }
+
+        function updateAbilityButtons(playerNum, playerData) {
+            const buttons = playerNum === 1 ? p1AbilityButtons : p2AbilityButtons;
+            const isCurrentPlayer = currentPlayer === playerNum;
+
+            for (const abilityKey in ABILITIES) {
+                const ability = ABILITIES[abilityKey];
+                const button = buttons[abilityKey];
+                if (button) {
+                    button.disabled = !isCurrentPlayer ||
+                                     gamePhase !== "abilities" ||
+                                     playerData.qe < ability.cost ||
+                                     playerData.abilitiesUsedThisTurn[abilityKey] >= ability.usesPerTurn;
+                    if (abilityKey === "shield" && playerData.shieldActive) {
+                        button.disabled = true; // Can't use shield if already active
+                        button.textContent = "Shield Active";
+                    } else {
+                        button.textContent = `${abilityKey.charAt(0).toUpperCase() + abilityKey.slice(1)} (${ability.cost} QE)`;
+                    }
+
+                    // During flux_select, disable all abilities except End Turn
+                    if (gamePhase === "flux_select") {
+                        button.disabled = true;
+                    }
+                }
+            }
+        }
+        
+        function handleRoll() {
+            if (gamePhase !== "roll") return;
+
+            const player = currentPlayer === 1 ? player1 : player2;
+            
+            // Add rolling animation class
+            const currentDiceEls = currentPlayer === 1 ? p1DiceEls : p2DiceEls;
+            currentDiceEls.forEach(el => el.classList.add('rolling'));
+
+            // Simulate dice roll with a slight delay for animation
+            setTimeout(() => {
+                player.dice[0] = rollDie();
+                player.dice[1] = rollDie();
+                player.rollTotal = player.dice[0] + player.dice[1];
+                player.qe += player.rollTotal; // Gain QE equal to roll
+
+                // Reset abilities used for the current player at the start of their roll phase
+                player.abilitiesUsedThisTurn = { flux: 0, amplify: 0, shield: 0 };
+                player.shieldActive = false; // Reset shield status at the start of their roll phase
+
+                messageBox.textContent = `${player.name} rolled ${player.dice[0]} and ${player.dice[1]} (Total: ${player.rollTotal}). Use abilities or End Turn.`;
+                gamePhase = "abilities";
+                updateUI();
+                currentDiceEls.forEach(el => el.classList.remove('rolling')); // Remove rolling animation
+            }, 500); // Match this delay with CSS animation duration
+        }
+
+        function handleAbility(playerNum, abilityKey) {
+            if (currentPlayer !== playerNum || gamePhase !== "abilities") return;
+
+            const player = playerNum === 1 ? player1 : player2;
+            const ability = ABILITIES[abilityKey];
+
+            if (player.qe >= ability.cost && player.abilitiesUsedThisTurn[abilityKey] < ability.usesPerTurn) {
+                player.qe -= ability.cost;
+                player.abilitiesUsedThisTurn[abilityKey]++;
+
+                if (abilityKey === "flux") {
+                    gamePhase = "flux_select";
+                    messageBox.textContent = `${player.name}, click a die to re-roll it. Or click End Turn to skip re-roll.`;
+                } else if (abilityKey === "amplify") {
+                    player.rollTotal += 2;
+                    messageBox.textContent = `${player.name} used Amplify! Roll is now ${player.rollTotal}.`;
+                } else if (abilityKey === "shield") {
+                    player.shieldActive = true;
+                    messageBox.textContent = `${player.name} activated Shield! Your opponent's VP gain might be reduced next round.`;
+                }
+                updateUI();
+            } else {
+                messageBox.textContent = `Not enough QE or uses left for ${abilityKey}.`;
+            }
+        }
+
+        function handleDiceClick(playerNum, dieIndex) {
+            if (currentPlayer !== playerNum || gamePhase !== "flux_select") return;
+
+            const player = playerNum === 1 ? player1 : player2;
+            
+            // Add rolling animation to the specific die
+            const targetDiceEl = (playerNum === 1 ? p1DiceEls : p2DiceEls)[dieIndex];
+            targetDiceEl.classList.add('rolling');
+
+            setTimeout(() => {
+                const oldDieValue = player.dice[dieIndex];
+                player.dice[dieIndex] = rollDie();
+                
+                // Update rollTotal: subtract old die value, add new die value
+                player.rollTotal = player.rollTotal - oldDieValue + player.dice[dieIndex];
+                // QE gain is only from initial roll, not flux re-roll.
+
+                messageBox.textContent = `${player.name} re-rolled a ${oldDieValue} into a ${player.dice[dieIndex]}. New total: ${player.rollTotal}.`;
+                gamePhase = "abilities"; // Return to abilities phase
+                fluxDiceIndex = -1; // Reset flux selection
+                updateUI();
+                targetDiceEl.classList.remove('rolling'); // Remove rolling animation
+            }, 500);
+        }
+
+
+        function handleEndTurn() {
+            if (gamePhase === "flux_select") { // If ending turn during flux selection, means they skip re-roll
+                gamePhase = "abilities"; // Go back to ability phase, flux is considered "used" if they clicked the button
+                messageBox.textContent = `${currentPlayer === 1 ? player1.name : player2.name} skipped Flux re-roll. Continue using abilities or End Turn.`;
+                updateUI();
+                return;
+            }
+
+            if (gamePhase !== "abilities") return;
+
+            if (currentPlayer === 1) {
+                currentPlayer = 2;
+                gamePhase = "roll";
+                messageBox.textContent = `Player 2's turn. Click "Roll Dice".`;
+                // Abilities used and shield status are reset at the start of handleRoll() for the next player
+            } else {
+                // Both players have rolled, now score the round
+                gamePhase = "scoring";
+                scoreRound();
+            }
+            updateUI();
+        }
+
+        function scoreRound() {
+            let roundMessage = "Scoring Round: ";
+            let p1Score = player1.rollTotal;
+            let p2Score = player2.rollTotal;
+
+            if (p1Score > p2Score) {
+                let vpWon = (p1Score - p2Score) + 2; // Winner gets difference + bonus 2 VP
+                if (player2.shieldActive) {
+                    vpWon = Math.floor(vpWon / 2);
+                    roundMessage += `Player 2's Shield reduced VP! `;
+                }
+                player1.vp += vpWon;
+                roundMessage += `Player 1 wins the round and gets ${vpWon} VP. `;
+            } else if (p2Score > p1Score) {
+                let vpWon = (p2Score - p1Score) + 2;
+                if (player1.shieldActive) {
+                    vpWon = Math.floor(vpWon / 2);
+                    roundMessage += `Player 1's Shield reduced VP! `;
+                }
+                player2.vp += vpWon;
+                roundMessage += `Player 2 wins the round and gets ${vpWon} VP. `;
+            } else {
+                roundMessage += "It's a Draw! No VP awarded this round. ";
+                // Both players get a small QE bonus for a draw
+                player1.qe += 2;
+                player2.qe += 2;
+                roundMessage += "Both players gain 2 QE."
+            }
+            
+            // Reset dice and roll totals for next round
+            player1.rollTotal = 0;
+            player1.dice = [0,0];
+            player2.rollTotal = 0;
+            player2.dice = [0,0];
+            player1.shieldActive = false; // Reset shields after scoring
+            player2.shieldActive = false;
+
+
+            if (player1.vp >= WINNING_VP) {
+                messageBox.textContent = roundMessage + `Player 1 wins the game with ${player1.vp} VP!`;
+                endGame();
+                return;
+            }
+            if (player2.vp >= WINNING_VP) {
+                messageBox.textContent = roundMessage + `Player 2 wins the game with ${player2.vp} VP!`;
+                endGame();
+                return;
+            }
+
+            currentPlayer = 1; // Next round starts with Player 1
+            messageBox.textContent = roundMessage + `Next round. Player 1's turn.`;
+            updateUI(); // Update UI to reflect scores and prepare for next turn button
+        }
+
+        function endGame() {
+            rollButton.disabled = true;
+            endTurnButton.style.display = "none";
+            Object.values(p1AbilityButtons).forEach(btn => btn.disabled = true);
+            Object.values(p2AbilityButtons).forEach(btn => btn.disabled = true);
+            // Highlight winner
+            if (player1.vp >= WINNING_VP) {
+                document.getElementById('player1Area').classList.add('border-yellow-400', 'border-4');
+            }
+            if (player2.vp >= WINNING_VP) {
+                document.getElementById('player2Area').classList.add('border-yellow-400', 'border-4');
+            }
+        }
+        
+        function resetGame() {
+            player1 = { vp: 0, qe: INITIAL_QE, dice: [0, 0], rollTotal: 0, abilitiesUsedThisTurn: { flux: 0, amplify: 0, shield: 0 }, shieldActive: false, name: "Player 1"};
+            player2 = { vp: 0, qe: INITIAL_QE, dice: [0, 0], rollTotal: 0, abilitiesUsedThisTurn: { flux: 0, amplify: 0, shield: 0 }, shieldActive: false, name: "Player 2"};
+            currentPlayer = 1;
+            gamePhase = "roll";
+            fluxDiceIndex = -1;
+
+            messageBox.textContent = "Player 1's turn. Click 'Roll Dice'.";
+            document.getElementById('player1Area').classList.remove('border-yellow-400', 'border-4');
+            document.getElementById('player2Area').classList.remove('border-yellow-400', 'border-4');
+            
+            // Clear dice displays explicitly
+            p1DiceEls.forEach(el => el.innerHTML = '');
+            p2DiceEls.forEach(el => el.innerHTML = '');
+
+            updateUI();
+            rollButton.disabled = false; // Ensure roll button is enabled for new game
+            rollButton.textContent = "Roll Dice"; // Reset button text
+        }
+
+
+        // --- Event Listeners ---
+        rollButton.addEventListener('click', () => {
+            if (gamePhase === "scoring") { // Button now starts next turn
+                gamePhase = "roll"; // Set to roll for the current player
+                // Abilities used and shield status are reset at the start of handleRoll()
+                messageBox.textContent = `Player ${currentPlayer}'s turn. Click "Roll Dice".`;
+                updateUI(); // Update UI, then roll if it's a roll phase
+            } else if (gamePhase === "roll") {
+                handleRoll();
+            }
+        });
+        endTurnButton.addEventListener('click', handleEndTurn);
+        resetButton.addEventListener('click', resetGame);
+
+        p1AbilityButtons.flux.addEventListener('click', () => handleAbility(1, 'flux'));
+        p1AbilityButtons.amplify.addEventListener('click', () => handleAbility(1, 'amplify'));
+        p1AbilityButtons.shield.addEventListener('click', () => handleAbility(1, 'shield'));
+
+        p2AbilityButtons.flux.addEventListener('click', () => handleAbility(2, 'flux'));
+        p2AbilityButtons.amplify.addEventListener('click', () => handleAbility(2, 'amplify'));
+        p2AbilityButtons.shield.addEventListener('click', () => handleAbility(2, 'shield'));
+        
+        // Add event listeners to dice elements for Flux ability
+        p1DiceEls.forEach((diceEl, index) => {
+            diceEl.addEventListener('click', () => handleDiceClick(1, index));
+        });
+        p2DiceEls.forEach((diceEl, index) => {
+            diceEl.addEventListener('click', () => handleDiceClick(2, index));
+        });
+
+        // Event listeners for Rules Modal
+        rulesIcon.addEventListener('click', () => {
+            rulesModal.classList.add('show');
+        });
+
+        closeRulesBtn.addEventListener('click', () => {
+            rulesModal.classList.remove('show');
+        });
+
+        rulesModal.addEventListener('click', (e) => {
+            if (e.target === rulesModal) {
+                rulesModal.classList.remove('show');
+            }
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
